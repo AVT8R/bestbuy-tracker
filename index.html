@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Best Buy Price Tracker</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { margin-bottom: 10px; color: #fff; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .status-bar {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .status.running { background: #00c853; color: #000; }
+        .status.stopped { background: #ff5252; color: #fff; }
+        .status.warning { background: #ffc107; color: #000; }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn-primary { background: #0066ff; color: #fff; }
+        .btn-success { background: #00c853; color: #000; }
+        .btn-danger { background: #ff5252; color: #fff; }
+        .btn-secondary { background: #444; color: #fff; }
+        .card {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #aaa;
+            font-weight: 500;
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .alert-warning {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid #ffc107;
+        }
+        .product-grid { display: flex; flex-direction: column; gap: 15px; }
+        .product-card {
+            background: #0f3460;
+            border-radius: 10px;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .product-card.disabled { opacity: 0.5; }
+        .product-info { flex: 1; min-width: 200px; }
+        .product-name {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+        .product-name a { color: #4dabf7; text-decoration: none; }
+        .product-name a:hover { text-decoration: underline; }
+        .product-meta { font-size: 13px; color: #888; }
+        .product-price {
+            text-align: right;
+            min-width: 150px;
+        }
+        .price-current {
+            font-size: 24px;
+            font-weight: 700;
+            color: #00e676;
+        }
+        .price-regular {
+            font-size: 14px;
+            color: #888;
+            text-decoration: line-through;
+        }
+        .price-sale { color: #ff5252; font-size: 13px; }
+        .product-status { display: flex; gap: 10px; align-items: center; }
+        .availability {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .availability.available { background: #00c853; color: #000; }
+        .availability.unavailable { background: #616161; }
+        .product-actions { display: flex; gap: 8px; }
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .add-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .add-form input {
+            padding: 10px 15px;
+            border: 1px solid #444;
+            border-radius: 6px;
+            background: #0f3460;
+            color: #fff;
+            font-size: 14px;
+        }
+        .add-form input::placeholder { color: #666; }
+        .add-form input[name="sku"] { width: 120px; }
+        .add-form input[name="name"] { flex: 1; min-width: 200px; }
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .nav-links a {
+            color: #4dabf7;
+            text-decoration: none;
+        }
+        .nav-links a:hover { text-decoration: underline; }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        @media (max-width: 600px) {
+            .product-card { flex-direction: column; align-items: flex-start; }
+            .product-price { text-align: left; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📦 Best Buy Price Tracker</h1>
+            </div>
+            <div class="status-bar">
+                {% if running %}
+                    <span class="status running">● Running</span>
+                    <button class="btn btn-danger" onclick="stopTracker()">Stop</button>
+                {% else %}
+                    <span class="status stopped">● Stopped</span>
+                    <button class="btn btn-success" onclick="startTracker()" {% if not api_configured %}disabled title="Configure API key first"{% endif %}>Start</button>
+                {% endif %}
+                <button class="btn btn-secondary" onclick="manualCheck()" {% if not api_configured %}disabled{% endif %}>Check Now</button>
+                <a href="/settings" class="btn btn-secondary">⚙️ Settings</a>
+            </div>
+        </div>
+
+        {% if not api_configured %}
+        <div class="alert alert-warning">
+            ⚠️ <strong>Best Buy API key not configured.</strong> 
+            <a href="/settings" style="color: #ffc107;">Go to Settings</a> to add your API key.
+        </div>
+        {% endif %}
+
+        {% if not webhook_configured %}
+        <div class="alert alert-warning">
+            ⚠️ <strong>Discord webhook not configured.</strong> 
+            <a href="/settings" style="color: #ffc107;">Go to Settings</a> to add your webhook URL.
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <h2>Tracked Products</h2>
+            
+            {% if products %}
+            <div class="product-grid">
+                {% for p in products %}
+                <div class="product-card {% if not p.enabled %}disabled{% endif %}" data-sku="{{ p.sku }}">
+                    <div class="product-info">
+                        <div class="product-name">
+                            <a href="{{ p.url }}" target="_blank">{{ p.name }}</a>
+                        </div>
+                        <div class="product-meta">
+                            SKU: {{ p.sku }}
+                            {% if p.last_check %}
+                            · Last checked: {{ p.last_check[:19] }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="product-status">
+                        {% if p.available is not none %}
+                            {% if p.available %}
+                            <span class="availability available">In Stock</span>
+                            {% else %}
+                            <span class="availability unavailable">Unavailable</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="product-price">
+                        {% if p.price %}
+                        <div class="price-current">${{ "%.2f"|format(p.price) }}</div>
+                        {% if p.on_sale and p.regular_price and p.regular_price != p.price %}
+                        <div class="price-regular">${{ "%.2f"|format(p.regular_price) }}</div>
+                        <div class="price-sale">Save ${{ "%.2f"|format(p.regular_price - p.price) }}</div>
+                        {% endif %}
+                        {% else %}
+                        <div style="color: #666">Not checked yet</div>
+                        {% endif %}
+                    </div>
+                    <div class="product-actions">
+                        <button class="btn btn-icon btn-secondary" onclick="toggleSku('{{ p.sku }}', {{ 'false' if p.enabled else 'true' }})" title="{{ 'Disable' if p.enabled else 'Enable' }}">
+                            {{ '👁️' if p.enabled else '👁️‍🗨️' }}
+                        </button>
+                        <button class="btn btn-icon btn-danger" onclick="deleteSku('{{ p.sku }}')" title="Remove">🗑️</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>No products being tracked yet.</p>
+                <p>Add a SKU below to get started.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <h2>Add Product</h2>
+            <form class="add-form" action="/api/sku" method="POST">
+                <input type="text" name="sku" placeholder="SKU (e.g. 6513602)" required>
+                <input type="text" name="name" placeholder="Product name (optional, auto-fetched)">
+                <button type="submit" class="btn btn-primary">Add</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        async function startTracker() {
+            await fetch('/api/tracker/start', { method: 'POST' });
+            location.reload();
+        }
+
+        async function stopTracker() {
+            await fetch('/api/tracker/stop', { method: 'POST' });
+            location.reload();
+        }
+
+        async function manualCheck() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Checking...';
+            await fetch('/api/check', { method: 'POST' });
+            location.reload();
+        }
+
+        async function deleteSku(sku) {
+            if (!confirm(`Remove SKU ${sku} from tracking?`)) return;
+            await fetch(`/api/sku/${sku}`, { method: 'DELETE' });
+            location.reload();
+        }
+
+        async function toggleSku(sku, enabled) {
+            await fetch(`/api/sku/${sku}/toggle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled })
+            });
+            location.reload();
+        }
+    </script>
+</body>
+</html>
