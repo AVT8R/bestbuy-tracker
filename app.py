@@ -87,7 +87,7 @@ def api_config():
 
 @app.route("/api/sku", methods=["POST"])
 def add_sku():
-    data = request.json or request.form.to_dict()
+    data = request.form.to_dict() if request.form else (request.get_json(silent=True) or {})
     sku = data.get("sku", "").strip()
     name = data.get("name", "").strip()
     
