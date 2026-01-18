@@ -63,7 +63,7 @@ def api_config():
             config["discord_webhook_url"] = "***configured***"
         return jsonify(config)
     
-    data = request.json or request.form.to_dict()
+    data = request.form.to_dict() if request.content_type == 'application/x-www-form-urlencoded' else (request.json or {})
     
     updates = {}
     if "bestbuy_api_key" in data and data["bestbuy_api_key"] and not data["bestbuy_api_key"].startswith("***"):
